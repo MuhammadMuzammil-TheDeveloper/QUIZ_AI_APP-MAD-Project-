@@ -1,15 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 export default function Home() {
+  const router = useRouter();
+
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔥 FETCH DATA FROM API
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("https://opentdb.com/api.php?amount=30");
+      const data = await res.json();
+
+      // extract unique categories
+      const unique = [
+        ...new Set(data.results.map((item) => item.category)),
+      ];
+
+      // map categories into UI format
+      const formatted = unique.map((cat, index) => ({
+        title: cat,
+        icon: "layers",
+        color: getColor(index),
+      }));
+
+      setCategories(formatted);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   return (
     <View style={styles.container}>
 
@@ -30,57 +67,50 @@ export default function Home() {
         {/* PROGRESS CARD */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Your Progress</Text>
-
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.label}>Questions</Text>
-              <Text style={styles.value}>15</Text>
-            </View>
-
-            <View>
-              <Text style={styles.label}>Best Score</Text>
-              <Text style={styles.value}>85%</Text>
-            </View>
-
-            <View>
-              <Text style={styles.label}>Rank</Text>
-              <Text style={styles.value}>#7</Text>
-            </View>
-          </View>
         </View>
 
-        {/* CATEGORIES */}
+        {/* CATEGORY HEADER */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Categories</Text>
-          <Text style={styles.seeAll}>See All</Text>
+
+          <TouchableOpacity onPress={() => router.push("/CategoryScreen")}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+
         </View>
 
-        <View style={styles.grid}>
-          <Category title="Programming" color="#10B981" icon="code-slash" />
-          <Category title="JavaScript" color="#F59E0B" icon="logo-javascript" />
-          <Category title="Computer Science" color="#EF4444" icon="desktop" />
-          <Category title="AI & ML" color="#8B5CF6" icon="hardware-chip" />
-          <Category title="Maths" color="#3B82F6" icon="calculator" />
-          <Category title="Networking" color="#06B6D4" icon="git-network" />
-        </View>
+        {/* LOADING */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#4F46E5" />
+        ) : (
+          <View style={styles.grid}>
+            {categories.slice(0, 6).map((item, index) => (
+              <Category key={index} {...item} />
+            ))}
+          </View>
+        )}
 
       </ScrollView>
 
-      {/* 🔥 BOTTOM NAV BAR */}
+      {/* BOTTOM NAV */}
       <View style={styles.bottomBar}>
-
         <NavItem icon="home" label="Home" active />
         <NavItem icon="time" label="History" />
         <NavItem icon="trophy" label="Leadership" />
         <NavItem icon="person" label="Profile" />
-
       </View>
 
     </View>
   );
 }
 
-/* CATEGORY COMPONENT */
+/* COLOR GENERATOR */
+function getColor(index) {
+  const colors = ["#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#3B82F6", "#06B6D4"];
+  return colors[index % colors.length];
+}
+
+/* CATEGORY */
 function Category({ title, color, icon }) {
   return (
     <TouchableOpacity style={[styles.category, { backgroundColor: color }]}>
@@ -90,7 +120,7 @@ function Category({ title, color, icon }) {
   );
 }
 
-/* BOTTOM NAV ITEM */
+/* NAV */
 function NavItem({ icon, label, active }) {
   return (
     <TouchableOpacity style={styles.navItem}>
@@ -196,7 +226,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* 🔥 Bottom Bar */
   bottomBar: {
     flexDirection: "row",
     justifyContent: "space-around",
