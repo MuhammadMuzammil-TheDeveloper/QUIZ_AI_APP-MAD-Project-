@@ -73,6 +73,7 @@ export default function Home() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Categories</Text>
 
+          {/* NAVIGATION TO FULL CATEGORY SCREEN */}
           <TouchableOpacity onPress={() => router.push("/CategoryScreen")}>
             <Text style={styles.seeAll}>See All</Text>
           </TouchableOpacity>
@@ -85,7 +86,22 @@ export default function Home() {
         ) : (
           <View style={styles.grid}>
             {categories.slice(0, 6).map((item, index) => (
-              <Category key={index} {...item} />
+              <Category
+                key={index}
+                title={item.title}
+                color={item.color}
+                icon={item.icon}
+
+                // 🔥 QUIZ NAVIGATION ADDED HERE (NO UI CHANGE)
+                onPress={() =>
+                  router.push({
+                    pathname: "/QuizScreen",
+                    params: {
+                      category: item.title,
+                    },
+                  })
+                }
+              />
             ))}
           </View>
         )}
@@ -106,21 +122,31 @@ export default function Home() {
 
 /* COLOR GENERATOR */
 function getColor(index) {
-  const colors = ["#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#3B82F6", "#06B6D4"];
+  const colors = [
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#3B82F6",
+    "#06B6D4",
+  ];
   return colors[index % colors.length];
 }
 
-/* CATEGORY */
-function Category({ title, color, icon }) {
+/* CATEGORY COMPONENT */
+function Category({ title, color, icon, onPress }) {
   return (
-    <TouchableOpacity style={[styles.category, { backgroundColor: color }]}>
+    <TouchableOpacity
+      style={[styles.category, { backgroundColor: color }]}
+      onPress={onPress}
+    >
       <Ionicons name={icon} size={22} color="#fff" />
       <Text style={styles.categoryText}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
-/* NAV */
+/* BOTTOM NAV */
 function NavItem({ icon, label, active }) {
   return (
     <TouchableOpacity style={styles.navItem}>
@@ -172,22 +198,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     marginBottom: 10,
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  label: {
-    color: "#D1D5DB",
-    fontSize: 12,
-  },
-
-  value: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
   },
 
   sectionHeader: {
