@@ -200,19 +200,30 @@ export default function Home() {
             <Text style={styles.subText}>Ready to test your knowledge?</Text>
           </View>
 
-          <TouchableOpacity
-            onPress={() => router.push("/profile")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.avatar}>
-              {userPhoto ? (
-                <Image source={{ uri: userPhoto }} style={styles.avatarImg} />
-              ) : (
-                <Text style={styles.avatarInitial}>{userInitial}</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
+         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+
+  {/* LOGOUT BUTTON */}
+  <TouchableOpacity onPress={handleLogout}>
+    <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+  </TouchableOpacity>
+
+  {/* PROFILE BUTTON */}
+  <TouchableOpacity
+    onPress={() => router.push("/profile")}
+    activeOpacity={0.8}
+  >
+    <View style={styles.avatar}>
+      {userPhoto ? (
+        <Image source={{ uri: userPhoto }} style={styles.avatarImg} />
+      ) : (
+        <Text style={styles.avatarInitial}>{userInitial}</Text>
+      )}
+    </View>
+  </TouchableOpacity>
+
+</View>
+</View>
+
 
         {/* PROGRESS CARD */}
         <View style={styles.card}>

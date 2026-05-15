@@ -21,7 +21,7 @@ export default function QuizScreen() {
   // 🔥 FETCH QUESTIONS BY CATEGORY
   const fetchQuiz = async () => {
     try {
-      const url = `https://opentdb.com/api.php?amount=10&category=&type=multiple`;
+     const url = `https://opentdb.com/api.php?amount=10&type=multiple`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -37,20 +37,20 @@ export default function QuizScreen() {
     fetchQuiz();
   }, []);
 
-  const handleAnswer = (answer) => {
-    const correct = questions[index].correct_answer;
+const handleAnswer = (answer) => {
+  const correct = questions?.[index]?.correct_answer;
+  if (!correct) return;
 
-    if (answer === correct) {
-      setScore(score + 1);
-    }
+  const newScore = answer === correct ? score + 1 : score;
 
-    if (index + 1 < questions.length) {
-      setIndex(index + 1);
-    } else {
-      alert(`Quiz Finished 🎉\nScore: ${score + 1}/${questions.length}`);
-      router.back();
-    }
-  };
+  if (index + 1 < questions.length) {
+    setScore(newScore);
+    setIndex(index + 1);
+  } else {
+    alert(`Quiz Finished 🎉\nScore: ${newScore}/${questions.length}`);
+    router.back();
+  }
+};
 
   if (loading) {
     return (
@@ -59,14 +59,20 @@ export default function QuizScreen() {
       </View>
     );
   }
+  if (!questions || questions.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text>No questions found</Text>
+      </View>
+    );
+  }
+  const q = questions?.[index];
 
-  const q = questions[index];
-
-  const options = [...q.incorrect_answers, q.correct_answer].sort();
-
+  const options = q?.incorrect_answers
+    ? [...q.incorrect_answers, q.correct_answer].sort()
+    : [];
   return (
     <View style={styles.container}>
-
       <Text style={styles.title}>{category}</Text>
 
       <Text style={styles.question}>
@@ -86,7 +92,6 @@ export default function QuizScreen() {
       <Text style={styles.progress}>
         {index + 1} / {questions.length}
       </Text>
-
     </View>
   );
 }

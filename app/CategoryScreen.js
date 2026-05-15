@@ -12,18 +12,30 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 const CATEGORY_META = {
-  "Science & Nature":       { icon: "flask-outline",      color: "#185FA5", bg: "#E6F1FB" },
-  "Science: Mathematics":   { icon: "calculator-outline",  color: "#534AB7", bg: "#EEEDFE" },
-  "Geography":              { icon: "globe-outline",       color: "#0F6E56", bg: "#E1F5EE" },
-  "Art":                    { icon: "color-palette-outline",color: "#993C1D", bg: "#FAECE7" },
-  "Entertainment":          { icon: "tv-outline",          color: "#854F0B", bg: "#FAEEDA" },
+  "Science & Nature": {
+    icon: "flask-outline",
+    color: "#185FA5",
+    bg: "#E6F1FB",
+  },
+  "Science: Mathematics": {
+    icon: "calculator-outline",
+    color: "#534AB7",
+    bg: "#EEEDFE",
+  },
+  Geography: { icon: "globe-outline", color: "#0F6E56", bg: "#E1F5EE" },
+  Art: { icon: "color-palette-outline", color: "#993C1D", bg: "#FAECE7" },
+  Entertainment: { icon: "tv-outline", color: "#854F0B", bg: "#FAEEDA" },
 };
 
-const DEFAULT_META = { icon: "layers-outline", color: "#534AB7", bg: "#EEEDFE" };
+const DEFAULT_META = {
+  icon: "layers-outline",
+  color: "#534AB7",
+  bg: "#EEEDFE",
+};
 
 function getMeta(title) {
   const key = Object.keys(CATEGORY_META).find((k) =>
-    title.toLowerCase().includes(k.toLowerCase())
+    title.toLowerCase().includes(k.toLowerCase()),
   );
   return key ? CATEGORY_META[key] : DEFAULT_META;
 }
@@ -48,7 +60,9 @@ export default function CategoryScreen() {
       const formatted = unique.map((cat) => ({
         title: cat,
         count: getQuestionCount(cat),
-        popular: cat.toLowerCase().includes("geography") || cat.toLowerCase().includes("general"),
+        popular:
+          cat.toLowerCase().includes("geography") ||
+          cat.toLowerCase().includes("general"),
         ...getMeta(cat),
       }));
       setCategories(formatted);
@@ -60,16 +74,21 @@ export default function CategoryScreen() {
     }
   };
 
-  useEffect(() => { fetchCategories(); }, []);
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const q = search.trim().toLowerCase();
-    setFiltered(q ? categories.filter((c) => c.title.toLowerCase().includes(q)) : categories);
+    setFiltered(
+      q
+        ? categories.filter((c) => c.title.toLowerCase().includes(q))
+        : categories,
+    );
   }, [search, categories]);
 
   return (
     <View style={styles.container}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
@@ -93,7 +112,12 @@ export default function CategoryScreen() {
 
       {/* SEARCH */}
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+        <Ionicons
+          name="search-outline"
+          size={16}
+          color="#9CA3AF"
+          style={{ marginRight: 8 }}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search topics..."
@@ -112,7 +136,11 @@ export default function CategoryScreen() {
 
       {/* LIST */}
       {loading ? (
-        <ActivityIndicator size="large" color="#534AB7" style={{ marginTop: 40 }} />
+        <ActivityIndicator
+          size="large"
+          color="#534AB7"
+          style={{ marginTop: 40 }}
+        />
       ) : (
         <FlatList
           data={filtered}
@@ -122,7 +150,12 @@ export default function CategoryScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.card, item.popular && styles.cardPopular]}
-              onPress={() => router.push({ pathname: "/quiz", params: { category: item.title } })}
+              onPress={() =>
+                router.push({
+                  pathname: "/QuizScreen",
+                  params: { category: item.title },
+                })
+              }
               activeOpacity={0.75}
             >
               <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
@@ -130,7 +163,9 @@ export default function CategoryScreen() {
               </View>
 
               <View style={styles.cardBody}>
-                <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
                 <Text style={styles.cardSub}>{item.count} questions</Text>
               </View>
 
