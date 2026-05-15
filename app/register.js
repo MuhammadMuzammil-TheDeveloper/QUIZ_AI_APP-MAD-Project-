@@ -37,7 +37,10 @@ export default function Register() {
   const handleRegister = async () => {
     // Empty field checks (individual, specific messages)
     if (!name.trim() && !email.trim() && !password) {
-      Alert.alert("Missing Fields", "Please fill in all fields to create your account.");
+      Alert.alert(
+        "Missing Fields",
+        "Please fill in all fields to create your account.",
+      );
       return;
     }
     if (!name.trim()) {
@@ -53,7 +56,10 @@ export default function Register() {
       return;
     }
     if (!validateEmail(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address (e.g. user@example.com).");
+      Alert.alert(
+        "Invalid Email",
+        "Please enter a valid email address (e.g. user@example.com).",
+      );
       return;
     }
     if (!password) {
@@ -61,7 +67,10 @@ export default function Register() {
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters long.");
+      Alert.alert(
+        "Weak Password",
+        "Password must be at least 6 characters long.",
+      );
       return;
     }
 
@@ -70,7 +79,7 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email.trim(),
-        password
+        password,
       );
 
       const user = userCredential.user;
@@ -80,7 +89,8 @@ export default function Register() {
         name: name.trim(),
         email: email.trim(),
         uid: user.uid,
-        createdAt: new Date().toISOString(),
+        score: 0,
+        createdAt: Date.now(), // better than string
       });
 
       // Clear all fields
@@ -97,14 +107,15 @@ export default function Register() {
             text: "Get Started",
             onPress: () => router.replace("/home"),
           },
-        ]
+        ],
       );
     } catch (error) {
       console.log("REGISTER ERROR:", error.code, error.message);
 
       let msg = "Something went wrong. Please try again.";
       if (error.code === "auth/email-already-in-use") {
-        msg = "This email is already registered. Please log in or use a different email.";
+        msg =
+          "This email is already registered. Please log in or use a different email.";
       } else if (error.code === "auth/invalid-email") {
         msg = "Invalid email address format.";
       } else if (error.code === "auth/weak-password") {
@@ -128,9 +139,11 @@ export default function Register() {
     >
       <StatusBar barStyle="dark-content" />
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={[styles.card, isTablet && styles.cardTablet]}>
-
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.badge}>
@@ -138,7 +151,9 @@ export default function Register() {
               <Text style={styles.badgeText}>Join Quiz AI</Text>
             </View>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start your learning journey today</Text>
+            <Text style={styles.subtitle}>
+              Start your learning journey today
+            </Text>
           </View>
 
           {/* Name */}
@@ -173,7 +188,11 @@ export default function Register() {
 
           {/* Password */}
           <View style={styles.inputGroup}>
-            <Ionicons name="lock-closed-outline" size={20} style={styles.icon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              style={styles.icon}
+            />
             <TextInput
               placeholder="Password (min. 6 characters)"
               value={password}
@@ -183,7 +202,10 @@ export default function Register() {
               placeholderTextColor="#9CA3AF"
               editable={!loading}
             />
-            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eye}>
+            <TouchableOpacity
+              onPress={() => setShowPass(!showPass)}
+              style={styles.eye}
+            >
               <Ionicons
                 name={showPass ? "eye-outline" : "eye-off-outline"}
                 size={20}
@@ -225,9 +247,10 @@ export default function Register() {
             onPress={() => router.push("/login")}
             disabled={loading}
           >
-            <Text style={styles.secondaryText}>Already have an account? Sign in</Text>
+            <Text style={styles.secondaryText}>
+              Already have an account? Sign in
+            </Text>
           </TouchableOpacity>
-
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
