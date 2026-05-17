@@ -195,7 +195,7 @@ export default function Home() {
             {loadingUser ? (
               <View style={styles.skeletonName} />
             ) : (
-              <Text style={styles.hello}>Hello, {userName} 👋</Text>
+              <Text style={styles.hello}>Hello, {userName} </Text>
             )}
             <Text style={styles.subText}>Ready to test your knowledge?</Text>
           </View>

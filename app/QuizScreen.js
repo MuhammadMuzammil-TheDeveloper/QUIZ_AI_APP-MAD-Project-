@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getAIExplanation } from "../services/groqService";
 import {
   View,
   Text,
@@ -22,6 +23,9 @@ export default function QuizScreen() {
 
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
+
+  const [wrongAnswers, setWrongAnswers] = useState([]);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   // ================= FETCH QUIZ =================
   const fetchQuiz = async () => {
@@ -48,13 +52,36 @@ export default function QuizScreen() {
   };
 
   // ================= NEXT QUESTION =================
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!selectedAnswer) return;
 
-    const correct = questions[index]?.correct_answer;
+    const currentQuestion = questions[index];
+    const correct = currentQuestion.correct_answer;
 
+    // CORRECT
     if (selectedAnswer === correct) {
       setScore((prev) => prev + 1);
+    } else {
+      // WRONG ANSWER
+      setLoadingExplanation(true);
+
+      const explanation = await getAIExplanation(
+        currentQuestion.question,
+        correct,
+        selectedAnswer,
+      );
+
+      setWrongAnswers((prev) => [
+        ...prev,
+        {
+          question: currentQuestion.question,
+          selected: selectedAnswer,
+          correct,
+          explanation,
+        },
+      ]);
+
+      setLoadingExplanation(false);
     }
 
     const nextIndex = index + 1;
@@ -92,9 +119,7 @@ export default function QuizScreen() {
         <View style={styles.card}>
           <Text style={styles.resultTitle}>🎉 Quiz Completed</Text>
 
-          <Text style={styles.resultCategory}>
-            Category: {category}
-          </Text>
+          <Text style={styles.resultCategory}>Category: {category}</Text>
 
           <Text style={styles.scoreText}>
             {score} / {questions.length}
@@ -104,14 +129,58 @@ export default function QuizScreen() {
             {score >= 7
               ? "Excellent Work 🔥"
               : score >= 4
-              ? "Good Job 👍"
-              : "Keep Practicing 💪"}
+                ? "Good Job 👍"
+                : "Keep Practicing 💪"}
           </Text>
+          {/* AI EXPLANATIONS */}
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.back()}
-          >
+          {wrongAnswers.length > 0 && (
+            <View style={{ width: "100%", marginTop: 20 }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  marginBottom: 10,
+                }}
+              >
+                AI Explanations
+              </Text>
+
+              {wrongAnswers.map((item, index) => (
+                <View
+                  key={index}
+                  style={{
+                    backgroundColor: "#F3F4F6",
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 15,
+                  }}
+                >
+                  {/* QUESTION */}
+                  <Text style={{ fontWeight: "700" }}>Question:</Text>
+
+                  <Text style={{ marginBottom: 10 }}>
+                    {item.question.replace(/&quot;|&#039;|&amp;/g, "")}
+                  </Text>
+
+                  {/* USER ANSWER */}
+                  <Text style={{ color: "red" }}>
+                    Your Answer: {item.selected}
+                  </Text>
+
+                  {/* CORRECT ANSWER */}
+                  <Text style={{ color: "green", marginBottom: 10 }}>
+                    Correct Answer: {item.correct}
+                  </Text>
+
+                  {/* AI EXPLANATION */}
+                  <Text style={{ color: "#111827" }}>{item.explanation}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.button} onPress={() => router.back()}>
             <Text style={styles.buttonText}>Back to Categories</Text>
           </TouchableOpacity>
         </View>
@@ -142,10 +211,7 @@ export default function QuizScreen() {
         return (
           <TouchableOpacity
             key={i}
-            style={[
-              styles.option,
-              isSelected && styles.selectedOption,
-            ]}
+            style={[styles.option, isSelected && styles.selectedOption]}
             onPress={() => handleSelect(opt)}
           >
             <Text style={styles.optionText}>{opt}</Text>
@@ -155,17 +221,12 @@ export default function QuizScreen() {
 
       {/* NEXT BUTTON */}
       <TouchableOpacity
-        style={[
-          styles.nextButton,
-          !selectedAnswer && styles.disabledBtn,
-        ]}
+        style={[styles.nextButton, !selectedAnswer && styles.disabledBtn]}
         disabled={!selectedAnswer}
         onPress={handleNext}
       >
         <Text style={styles.nextText}>
-          {index + 1 === questions.length
-            ? "Finish Quiz"
-            : "Next Question"}
+          {index + 1 === questions.length ? "Finish Quiz" : "Next Question"}
         </Text>
       </TouchableOpacity>
 
