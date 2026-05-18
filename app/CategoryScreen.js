@@ -91,7 +91,7 @@ export default function CategoryScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/home")}>
           <Ionicons name="arrow-back" size={20} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.title}>Categories</Text>

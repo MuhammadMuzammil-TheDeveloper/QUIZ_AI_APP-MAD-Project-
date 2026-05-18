@@ -26,7 +26,6 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebaseConfig";
 
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLORS = [
@@ -57,13 +56,13 @@ const pickIcon = (i) => ICONS[i % ICONS.length];
 
 export default function Home() {
   const handleLogout = async () => {
-  try {
-    await signOut(auth);
-    router.replace("/login"); // clear history so user can't go back
-  } catch (error) {
-    console.log("Logout Error:", error);
-  }
-};
+    try {
+      await signOut(auth);
+      router.replace("/login"); // clear history so user can't go back
+    } catch (error) {
+      console.log("Logout Error:", error);
+    }
+  };
   const router = useRouter();
 
   // undefined = session still resolving | null = no user | object = logged in
@@ -103,6 +102,8 @@ export default function Home() {
           name: user.displayName || "",
           email: user.email || "",
           score: 0,
+          quizzesAttempted: 0,
+          correctAnswers: 0,
         });
       }
     } catch (err) {
@@ -161,9 +162,13 @@ export default function Home() {
   }, [fetchCategories, fetchUserData, firebaseUser]);
 
   // ── Derived display values ────────────────────────────────────────────────
-  const userName = userData?.name?.trim() || userData?.displayName?.trim() || "User";
+  const userName =
+    userData?.name?.trim() || userData?.displayName?.trim() || "User";
   const userInitial = userName.charAt(0).toUpperCase();
   const userScore = userData?.score ?? 0;
+  const quizzesAttempted = userData?.quizzesAttempted ?? 0;
+  const correctAnswers = userData?.correctAnswers ?? 0;
+
   const userPhoto = userData?.profileImage || firebaseUser?.photoURL || null;
 
   // Show spinner while Firebase restores session (prevents "User" flash)
@@ -200,30 +205,27 @@ export default function Home() {
             <Text style={styles.subText}>Ready to test your knowledge?</Text>
           </View>
 
-         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {/* LOGOUT BUTTON */}
+            <TouchableOpacity onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+            </TouchableOpacity>
 
-  {/* LOGOUT BUTTON */}
-  <TouchableOpacity onPress={handleLogout}>
-    <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-  </TouchableOpacity>
-
-  {/* PROFILE BUTTON */}
-  <TouchableOpacity
-    onPress={() => router.push("/profile")}
-    activeOpacity={0.8}
-  >
-    <View style={styles.avatar}>
-      {userPhoto ? (
-        <Image source={{ uri: userPhoto }} style={styles.avatarImg} />
-      ) : (
-        <Text style={styles.avatarInitial}>{userInitial}</Text>
-      )}
-    </View>
-  </TouchableOpacity>
-
-</View>
-</View>
-
+            {/* PROFILE BUTTON */}
+            <TouchableOpacity
+              onPress={() => router.push("/profile")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.avatar}>
+                {userPhoto ? (
+                  <Image source={{ uri: userPhoto }} style={styles.avatarImg} />
+                ) : (
+                  <Text style={styles.avatarInitial}>{userInitial}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* PROGRESS CARD */}
         <View style={styles.card}>
@@ -243,8 +245,18 @@ export default function Home() {
           <View style={styles.divider} />
 
           <View style={styles.statsRow}>
-            <Stat icon="layers-outline" label="Total Quizzes" value="—" />
-            <Stat icon="checkmark-circle-outline" label="Correct" value="—" />
+            <Stat
+              icon="layers-outline"
+              label="Total Quizzes"
+              value={String(quizzesAttempted)}
+            />
+
+            <Stat
+              icon="checkmark-circle-outline"
+              label="Correct"
+              value={String(correctAnswers)}
+            />
+
             <Stat
               icon="trophy-outline"
               label="Best Score"
@@ -301,11 +313,8 @@ export default function Home() {
       {/* BOTTOM NAV */}
       <View style={styles.bottomBar}>
         <NavItem icon="home" label="Home" active />
-        <TouchableOpacity onPress={() => router.push("/history")}>
-          <NavItem icon="time-outline" label="History" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/leaderboard")}>
-          <NavItem icon="trophy-outline" label="Leaderboard" />
+        <TouchableOpacity onPress={() => router.push("/CategoryScreen")}>
+          <NavItem icon="grid-outline" label="Category" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/profile")}>
           <NavItem icon="person-outline" label="Profile" />
@@ -493,4 +502,3 @@ const styles = StyleSheet.create({
   navText: { fontSize: 11, color: "#6B7280", marginTop: 3 },
   navActive: { color: "#4F46E5", fontWeight: "600" },
 });
-  

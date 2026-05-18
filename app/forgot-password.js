@@ -13,7 +13,7 @@ import {
 } from "react-native";
 
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { auth } from "../firebase/firebaseConfig";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 

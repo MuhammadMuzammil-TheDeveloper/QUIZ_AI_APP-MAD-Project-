@@ -11,7 +11,9 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
+import { auth, db } from "../firebase/firebaseConfig";
 
+import { doc, updateDoc, increment, getDoc, setDoc } from "firebase/firestore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
@@ -62,61 +64,121 @@ export default function QuizScreen() {
   // ================= NEXT QUESTION =================
   // Now synchronous — no awaiting AI mid-quiz.
   // Wrong answers accumulate instantly; AI is called in batch only after the last question.
-  const handleNext = () => {
-    if (!selectedAnswer) return;
+  // ================= NEXT QUESTION =================
+const handleNext = () => {
+  if (!selectedAnswer) return;
 
-    const currentQuestion = questions[index];
-    const correct = currentQuestion.correct_answer;
+  const currentQuestion = questions[index];
+  const correct = currentQuestion.correct_answer;
 
-    let updatedPending = pendingWrong;
+  let updatedScore = score;
 
-    if (selectedAnswer === correct) {
-      // CORRECT
-      setScore((prev) => prev + 1);
-    } else {
-      // WRONG — store immediately without calling AI
-      updatedPending = [
-        ...pendingWrong,
-        {
-          question: currentQuestion.question,
-          selected: selectedAnswer,
-          correct,
-        },
-      ];
-      setPendingWrong(updatedPending);
-    }
+  // create local updated wrong list
+  let updatedWrong = [...pendingWrong];
 
-    const nextIndex = index + 1;
+  if (selectedAnswer === correct) {
+    updatedScore = score + 1;
+    setScore(updatedScore);
+  } else {
+    const wrongItem = {
+      question: currentQuestion.question,
+      selected: selectedAnswer,
+      correct,
+    };
 
-    if (nextIndex < questions.length) {
-      // More questions remain — advance with zero delay
-      setIndex(nextIndex);
-      setSelectedAnswer(null);
-    } else {
-      // Quiz finished — now fetch all AI explanations in parallel, then reveal results
-      if (updatedPending.length > 0) {
-        setLoadingExplanation(true);
-        Promise.all(
-          updatedPending.map(async (item) => {
+    updatedWrong.push(wrongItem);
+
+    setPendingWrong(updatedWrong);
+  }
+
+  const nextIndex = index + 1;
+
+  // next question
+  if (nextIndex < questions.length) {
+    setIndex(nextIndex);
+    setSelectedAnswer(null);
+    return;
+  }
+
+  // final question
+  setTimeout(() => {
+    finishQuiz(updatedScore, updatedWrong);
+  }, 0);
+};
+  const finishQuiz = async (finalScore, wrongList) => {
+    try {
+      const wrongList = pendingWrong;
+
+      // ================= FIREBASE UPDATE =================
+      const user = auth.currentUser;
+
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+          await updateDoc(userRef, {
+            quizzesAttempted: increment(1),
+            correctAnswers: increment(finalScore),
+            score: increment(finalScore),
+          });
+        } else {
+          await setDoc(userRef, {
+            name: user.displayName || "",
+            email: user.email || "",
+            quizzesAttempted: 1,
+            correctAnswers: finalScore,
+            score: finalScore,
+          });
+        }
+      }
+
+      // ================= AI EXPLANATIONS =================
+      if (wrongList.length === 0) {
+        setShowResult(true);
+        return;
+      }
+
+      setLoadingExplanation(true);
+
+      const resolved = await Promise.all(
+        wrongList.map(async (item) => {
+          try {
             const explanation = await getAIExplanation(
               item.question,
               item.correct,
-              item.selected
+              item.selected,
             );
-            return { ...item, explanation };
-          })
-        ).then((resolved) => {
-          setWrongAnswers(resolved);
-          setLoadingExplanation(false);
-          setShowResult(true);
-        });
-      } else {
-        // Perfect score — no AI calls needed
-        setShowResult(true);
-      }
+
+            return {
+              ...item,
+              explanation: explanation || "No explanation available.",
+            };
+          } catch (err) {
+            console.log("AI error:", err);
+
+            return {
+              ...item,
+              explanation: "AI service failed. Check API or network.",
+            };
+          }
+        }),
+      );
+
+      setWrongAnswers(resolved);
+
+      setLoadingExplanation(false);
+
+      setShowResult(true);
+    } catch (err) {
+      console.log("Finish Quiz Error:", err);
+
+      setLoadingExplanation(false);
+
+      setShowResult(true);
     }
   };
-
   // ================= LOADING (initial quiz fetch only) =================
   if (loading) {
     return (
@@ -148,7 +210,9 @@ export default function QuizScreen() {
         <View style={styles.loaderCard}>
           <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.loaderText}>Preparing your results…</Text>
-          <Text style={styles.loaderSub}>AI is reviewing your wrong answers</Text>
+          <Text style={styles.loaderSub}>
+            AI is reviewing your wrong answers
+          </Text>
         </View>
       </View>
     );
@@ -162,8 +226,8 @@ export default function QuizScreen() {
       score >= 7
         ? "Excellent Work!"
         : score >= 4
-        ? "Good Job!"
-        : "Keep Practicing!";
+          ? "Good Job!"
+          : "Keep Practicing!";
 
     const scoreColor =
       score >= 7 ? "#10B981" : score >= 4 ? "#F59E0B" : "#EF4444";
@@ -246,7 +310,9 @@ export default function QuizScreen() {
                     </View>
                     <View style={[styles.answerBadge, styles.correctBadge]}>
                       <Text style={styles.answerBadgeLabel}>Correct</Text>
-                      <Text style={styles.answerBadgeValue}>{item.correct}</Text>
+                      <Text style={styles.answerBadgeValue}>
+                        {item.correct}
+                      </Text>
                     </View>
                   </View>
 

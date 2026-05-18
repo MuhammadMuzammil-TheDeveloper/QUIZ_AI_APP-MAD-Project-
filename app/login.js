@@ -17,7 +17,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { auth } from "../firebase/firebaseConfig";
 
 export default function Login() {
   const { width } = useWindowDimensions();

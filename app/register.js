@@ -18,7 +18,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import { auth, db } from "../firebase/firebaseConfig";
 
 export default function Register() {
   const { width } = useWindowDimensions();
@@ -89,8 +89,12 @@ export default function Register() {
         name: name.trim(),
         email: email.trim(),
         uid: user.uid,
+
+        // User stats
         score: 0,
-        createdAt: Date.now(), // better than string
+        quizzesAttempted: 0,
+        correctAnswers: 0,
+        createdAt: Date.now(),
       });
 
       // Clear all fields
@@ -100,12 +104,12 @@ export default function Register() {
 
       // Show success then navigate
       Alert.alert(
-        "Account Created ✅",
+        "Account Created",
         `Welcome, ${name.trim()}! Your account has been created successfully.`,
         [
           {
             text: "Get Started",
-            onPress: () => router.replace("/home"),
+            onPress: () => router.replace("/login"),
           },
         ],
       );
