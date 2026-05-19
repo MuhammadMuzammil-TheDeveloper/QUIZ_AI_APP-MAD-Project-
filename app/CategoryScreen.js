@@ -83,7 +83,7 @@ export default function CategoryScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F6F7FB" />
+      {/* <StatusBar barStyle="dark-content" backgroundColor="#F6F7FB" /> */}
 
       {/* HEADER */}
       <View style={styles.header}>

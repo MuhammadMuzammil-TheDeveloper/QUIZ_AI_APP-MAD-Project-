@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import {
   View,
   Text,
@@ -76,7 +77,7 @@ export default function Profile() {
           profileImage: photo,
           updatedAt: new Date().toISOString(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       setEditMode(false);
@@ -100,10 +101,11 @@ export default function Profile() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-
       {/* HEADER */}
+      {/* REMOVE THIS COMPLETE HEADER BLOCK */}
+      
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.push("/home")}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
 
@@ -117,7 +119,7 @@ export default function Profile() {
           />
         </TouchableOpacity>
       </View>
-
+      
       {/* PROFILE CARD */}
       <View style={styles.card}>
         <View style={styles.avatarRing}>
@@ -138,7 +140,6 @@ export default function Profile() {
           <Text style={styles.score}>{score}</Text>
         </View>
       </View>
-
       {/* FORM */}
       <View style={styles.form}>
         <Input
@@ -149,13 +150,12 @@ export default function Profile() {
         />
 
         <Input
-          label="Username"
+          label="Email"
           value={username}
           setValue={setUsername}
           editable={editMode}
         />
       </View>
-
       {/* SAVE */}
       {editMode && (
         <TouchableOpacity
@@ -185,10 +185,7 @@ function Input({ label, value, setValue, editable }) {
         editable={editable}
         placeholder={`Enter ${label}`}
         placeholderTextColor="#aaa"
-        style={[
-          styles.input,
-          !editable && { backgroundColor: "#F1F1F1" },
-        ]}
+        style={[styles.input, !editable && { backgroundColor: "#F1F1F1" }]}
       />
     </View>
   );

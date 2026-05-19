@@ -17,8 +17,8 @@ const { width } = Dimensions.get("window");
 
 const FEATURES = [
   { id: 1, title: "AI Quiz", desc: "Smart AI quizzes", icon: "sparkles", color: "#6C63FF" },
-  { id: 2, title: "Leaderboard", desc: "Global ranking", icon: "trophy", color: "#F59E0B" },
-  { id: 3, title: "Daily Challenge", desc: "Daily missions", icon: "flash", color: "#10B981" },
+  // { id: 2, title: "Leaderboard", desc: "Global ranking", icon: "trophy", color: "#F59E0B" },
+  // { id: 3, title: "Daily Challenge", desc: "Daily missions", icon: "flash", color: "#10B981" },
   { id: 4, title: "Progress", desc: "Track growth", icon: "analytics", color: "#EF4444" },
   { id: 5, title: "Achievements", desc: "Earn badges", icon: "medal", color: "#8B5CF6" },
   { id: 6, title: "Categories", desc: "Explore topics", icon: "grid", color: "#06B6D4" },
