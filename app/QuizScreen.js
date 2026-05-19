@@ -12,7 +12,6 @@ import {
   Platform,
 } from "react-native";
 import { auth, db } from "../firebase/firebaseConfig";
-
 import { doc, updateDoc, increment, getDoc, setDoc } from "firebase/firestore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -40,10 +39,10 @@ export default function QuizScreen() {
   // ================= FETCH QUIZ =================
   const fetchQuiz = async () => {
     try {
+      setLoading(true);
       const url = `https://opentdb.com/api.php?amount=10&type=multiple`;
       const res = await fetch(url);
       const data = await res.json();
-
       setQuestions(data.results || []);
     } catch (err) {
       console.log("Quiz API Error:", err);
@@ -62,59 +61,59 @@ export default function QuizScreen() {
   };
 
   // ================= NEXT QUESTION =================
-  // Now synchronous — no awaiting AI mid-quiz.
+  // Synchronous — no awaiting AI mid-quiz.
   // Wrong answers accumulate instantly; AI is called in batch only after the last question.
-  // ================= NEXT QUESTION =================
-const handleNext = () => {
-  if (!selectedAnswer) return;
+  const handleNext = () => {
+    if (!selectedAnswer) return;
 
-  const currentQuestion = questions[index];
-  const correct = currentQuestion.correct_answer;
+    const currentQuestion = questions[index];
+    const correct = currentQuestion.correct_answer;
 
-  let updatedScore = score;
+    let updatedScore = score;
 
-  // create local updated wrong list
-  let updatedWrong = [...pendingWrong];
+    // Build local updated wrong list
+    let updatedWrong = [...pendingWrong];
 
-  if (selectedAnswer === correct) {
-    updatedScore = score + 1;
-    setScore(updatedScore);
-  } else {
-    const wrongItem = {
-      question: currentQuestion.question,
-      selected: selectedAnswer,
-      correct,
-    };
+    if (selectedAnswer === correct) {
+      updatedScore = score + 1;
+      setScore(updatedScore);
+    } else {
+      const wrongItem = {
+        question: currentQuestion.question,
+        selected: selectedAnswer,
+        correct,
+      };
+      updatedWrong.push(wrongItem);
+      setPendingWrong(updatedWrong);
+    }
 
-    updatedWrong.push(wrongItem);
+    const nextIndex = index + 1;
 
-    setPendingWrong(updatedWrong);
-  }
+    // Move to next question
+    if (nextIndex < questions.length) {
+      setIndex(nextIndex);
+      setSelectedAnswer(null);
+      return;
+    }
 
-  const nextIndex = index + 1;
+    // Final question — pass both score and wrongList directly to avoid stale state
+    setTimeout(() => {
+      finishQuiz(updatedScore, updatedWrong);
+    }, 0);
+  };
 
-  // next question
-  if (nextIndex < questions.length) {
-    setIndex(nextIndex);
-    setSelectedAnswer(null);
-    return;
-  }
-
-  // final question
-  setTimeout(() => {
-    finishQuiz(updatedScore, updatedWrong);
-  }, 0);
-};
+  // ================= FINISH QUIZ =================
   const finishQuiz = async (finalScore, wrongList) => {
     try {
-      const wrongList = pendingWrong;
+      // ✅ FIX: Do NOT redeclare wrongList here.
+      // Using the parameter directly avoids stale React state.
+      // Previously: const wrongList = pendingWrong; ← This was the bug (shadowed param with stale state)
 
       // ================= FIREBASE UPDATE =================
       const user = auth.currentUser;
 
       if (user) {
         const userRef = doc(db, "users", user.uid);
-
         const snap = await getDoc(userRef);
 
         if (snap.exists()) {
@@ -135,7 +134,7 @@ const handleNext = () => {
       }
 
       // ================= AI EXPLANATIONS =================
-      if (wrongList.length === 0) {
+      if (!wrongList || wrongList.length === 0) {
         setShowResult(true);
         return;
       }
@@ -148,37 +147,32 @@ const handleNext = () => {
             const explanation = await getAIExplanation(
               item.question,
               item.correct,
-              item.selected,
+              item.selected
             );
-
             return {
               ...item,
               explanation: explanation || "No explanation available.",
             };
           } catch (err) {
-            console.log("AI error:", err);
-
+            console.log("AI error for question:", item.question, err);
             return {
               ...item,
               explanation: "AI service failed. Check API or network.",
             };
           }
-        }),
+        })
       );
 
       setWrongAnswers(resolved);
-
       setLoadingExplanation(false);
-
       setShowResult(true);
     } catch (err) {
       console.log("Finish Quiz Error:", err);
-
       setLoadingExplanation(false);
-
       setShowResult(true);
     }
   };
+
   // ================= LOADING (initial quiz fetch only) =================
   if (loading) {
     return (
@@ -226,8 +220,8 @@ const handleNext = () => {
       score >= 7
         ? "Excellent Work!"
         : score >= 4
-          ? "Good Job!"
-          : "Keep Practicing!";
+        ? "Good Job!"
+        : "Keep Practicing!";
 
     const scoreColor =
       score >= 7 ? "#10B981" : score >= 4 ? "#F59E0B" : "#EF4444";
