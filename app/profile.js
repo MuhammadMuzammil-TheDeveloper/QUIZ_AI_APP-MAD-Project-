@@ -24,18 +24,14 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  // user fields
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [score, setScore] = useState(0);
   const [photo, setPhoto] = useState("");
 
   const user = auth.currentUser;
 
-  // ─── FETCH USER ─────────────────────────────
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -44,18 +40,14 @@ export default function Profile() {
 
       if (snap.exists()) {
         const data = snap.data();
-
         setName(data.name || "");
         setUsername(data.username || "");
-        setBio(data.bio || "");
-        setPhone(data.phone || "");
         setScore(data.score || 0);
         setPhoto(data.profileImage || "");
       }
 
       setEmail(user.email || "");
     } catch (err) {
-      console.log(err);
       Alert.alert("Error", "Failed to load profile");
     } finally {
       setLoading(false);
@@ -66,7 +58,6 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  // ─── SAVE PROFILE ───────────────────────────
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Validation", "Name is required");
@@ -81,8 +72,6 @@ export default function Profile() {
         {
           name: name.trim(),
           username: username.trim(),
-          bio: bio.trim(),
-          phone: phone.trim(),
           email: user.email,
           profileImage: photo,
           updatedAt: new Date().toISOString(),
@@ -93,7 +82,6 @@ export default function Profile() {
       setEditMode(false);
       Alert.alert("Success", "Profile updated successfully");
     } catch (err) {
-      console.log(err);
       Alert.alert("Error", "Could not update profile");
     } finally {
       setSaving(false);
@@ -105,13 +93,13 @@ export default function Profile() {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#6C5CE7" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -119,7 +107,7 @@ export default function Profile() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>My Profile</Text>
+        <Text style={styles.title}>Profile</Text>
 
         <TouchableOpacity onPress={() => setEditMode(!editMode)}>
           <Ionicons
@@ -132,25 +120,29 @@ export default function Profile() {
 
       {/* PROFILE CARD */}
       <View style={styles.card}>
-
-        {/* AVATAR */}
-        <View style={styles.avatar}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.img} />
-          ) : (
-            <Text style={styles.initial}>{initial}</Text>
-          )}
+        <View style={styles.avatarRing}>
+          <View style={styles.avatar}>
+            {photo ? (
+              <Image source={{ uri: photo }} style={styles.img} />
+            ) : (
+              <Text style={styles.initial}>{initial}</Text>
+            )}
+          </View>
         </View>
 
+        <Text style={styles.nameText}>{name || "No Name"}</Text>
         <Text style={styles.email}>{email}</Text>
-        <Text style={styles.score}>Score: {score}</Text>
+
+        <View style={styles.scoreBox}>
+          <Text style={styles.scoreLabel}>Total Score</Text>
+          <Text style={styles.score}>{score}</Text>
+        </View>
       </View>
 
       {/* FORM */}
       <View style={styles.form}>
-
         <Input
-          label="Name"
+          label="Full Name"
           value={name}
           setValue={setName}
           editable={editMode}
@@ -162,24 +154,9 @@ export default function Profile() {
           setValue={setUsername}
           editable={editMode}
         />
-
-        <Input
-          label="Bio"
-          value={bio}
-          setValue={setBio}
-          editable={editMode}
-        />
-
-        <Input
-          label="Phone"
-          value={phone}
-          setValue={setPhone}
-          editable={editMode}
-        />
-
       </View>
 
-      {/* SAVE BUTTON */}
+      {/* SAVE */}
       {editMode && (
         <TouchableOpacity
           style={styles.btn}
@@ -189,27 +166,28 @@ export default function Profile() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.btnText}>Save Changes</Text>
+            <Text style={styles.btnText}>Save Profile</Text>
           )}
         </TouchableOpacity>
       )}
-
     </ScrollView>
   );
 }
 
-/* INPUT COMPONENT */
+/* INPUT */
 function Input({ label, value, setValue, editable }) {
   return (
-    <View style={{ marginBottom: 15 }}>
+    <View style={{ marginBottom: 18 }}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={setValue}
         editable={editable}
+        placeholder={`Enter ${label}`}
+        placeholderTextColor="#aaa"
         style={[
           styles.input,
-          !editable && { backgroundColor: "#eee" },
+          !editable && { backgroundColor: "#F1F1F1" },
         ]}
       />
     </View>
@@ -220,7 +198,7 @@ function Input({ label, value, setValue, editable }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FB",
+    backgroundColor: "#F4F6FB",
   },
 
   loader: {
@@ -230,31 +208,49 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#4F46E5",
-    padding: 20,
+    backgroundColor: "#6C5CE7",
+    padding: 22,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
 
   title: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
   },
 
   card: {
+    marginTop: 25,
     alignItems: "center",
-    marginTop: 20,
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    padding: 25,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  avatarRing: {
+    padding: 4,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "#6C5CE7",
   },
 
   avatar: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: "#4F46E5",
+    backgroundColor: "#6C5CE7",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
 
   img: {
@@ -265,19 +261,40 @@ const styles = StyleSheet.create({
 
   initial: {
     color: "#fff",
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: "bold",
+  },
+
+  nameText: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#222",
   },
 
   email: {
-    marginTop: 10,
-    color: "#666",
+    color: "#777",
+    marginTop: 3,
+  },
+
+  scoreBox: {
+    marginTop: 15,
+    backgroundColor: "#F1EEFF",
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  scoreLabel: {
+    fontSize: 12,
+    color: "#6C5CE7",
   },
 
   score: {
-    color: "#4F46E5",
+    fontSize: 20,
     fontWeight: "bold",
-    marginTop: 5,
+    color: "#6C5CE7",
   },
 
   form: {
@@ -285,28 +302,30 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    marginBottom: 5,
+    marginBottom: 6,
     fontWeight: "600",
+    color: "#333",
   },
 
   input: {
     backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E5E5E5",
   },
 
   btn: {
-    backgroundColor: "#4F46E5",
+    backgroundColor: "#6C5CE7",
     margin: 20,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
   },
 
   btnText: {
     color: "#fff",
     fontWeight: "700",
+    fontSize: 15,
   },
 });

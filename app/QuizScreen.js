@@ -36,6 +36,10 @@ export default function QuizScreen() {
   // Accumulates wrong answers during quiz WITHOUT blocking for AI
   const [pendingWrong, setPendingWrong] = useState([]);
 
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState(100); // 3 minutes = 180 seconds
+  const [timerActive, setTimerActive] = useState(true);
+
   // ================= FETCH QUIZ =================
   const fetchQuiz = async () => {
     try {
@@ -54,6 +58,45 @@ export default function QuizScreen() {
   useEffect(() => {
     fetchQuiz();
   }, []);
+
+  // ================= TIMER EFFECT =================
+  useEffect(() => {
+    let interval;
+    if (timerActive && timeLeft > 0 && !showResult && !loading && questions.length > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            // Time's up - finish the quiz
+            clearInterval(interval);
+            setTimerActive(false);
+            // Auto finish quiz with current score and wrong answers
+            setTimeout(() => {
+              finishQuiz(score, pendingWrong);
+            }, 0);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerActive, timeLeft, showResult, loading, questions.length]);
+
+  // ================= FORMAT TIME =================
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Get timer color based on time left
+  const getTimerColor = () => {
+    if (timeLeft <= 30) return "#EF4444";
+    if (timeLeft <= 60) return "#F59E0B";
+    return "#10B981";
+  };
 
   // ================= SELECT ANSWER =================
   const handleSelect = (answer) => {
@@ -105,6 +148,9 @@ export default function QuizScreen() {
   // ================= FINISH QUIZ =================
   const finishQuiz = async (finalScore, wrongList) => {
     try {
+      // Stop timer when quiz finishes
+      setTimerActive(false);
+      
       // ✅ FIX: Do NOT redeclare wrongList here.
       // Using the parameter directly avoids stale React state.
       // Previously: const wrongList = pendingWrong; ← This was the bug (shadowed param with stale state)
@@ -349,15 +395,30 @@ export default function QuizScreen() {
         {/* ── HEADER ── */}
         <View style={styles.quizHeader}>
           <Text style={styles.categoryLabel}>{category}</Text>
-          <Text style={styles.progressLabel}>
-            {index + 1} / {questions.length}
-          </Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.progressLabel}>
+              {index + 1} / {questions.length}
+            </Text>
+            {/* Timer Display */}
+            <View style={styles.timerContainer}>
+              <Text style={[styles.timerText, { color: getTimerColor() }]}>
+                ⏱️ {formatTime(timeLeft)}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* ── PROGRESS BAR ── */}
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
+
+        {/* Timer Warning Bar - shows when time is low */}
+        {timeLeft <= 30 && (
+          <View style={styles.timerWarning}>
+            <Text style={styles.timerWarningText}>⚠️ Hurry up! Only {formatTime(timeLeft)} left!</Text>
+          </View>
+        )}
 
         {/* ── QUESTION CARD ── */}
         <View style={styles.questionCard}>
@@ -498,12 +559,50 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#4F46E5",
     flexShrink: 1,
-    maxWidth: "70%",
+    maxWidth: "50%",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   progressLabel: {
     fontSize: 14,
     color: "#9CA3AF",
     fontWeight: "600",
+  },
+  timerContainer: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: { elevation: 1 },
+    }),
+  },
+  timerText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  timerWarning: {
+    backgroundColor: "#FEF2F2",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  timerWarningText: {
+    color: "#EF4444",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
   progressTrack: {
     height: 6,

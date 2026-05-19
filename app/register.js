@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   StatusBar,
   StyleSheet,
   KeyboardAvoidingView,
@@ -16,8 +15,10 @@ import {
 
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+
 import { auth, db } from "../firebase/firebaseConfig";
 
 export default function Register() {
@@ -27,110 +28,119 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ─── Validation ───────────────────────────────────────────────
-  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+  const [registered, setRegistered] = useState(false);
 
-  // ─── REGISTER ─────────────────────────────────────────────────
+  // NEW STATES
+  const [errorText, setErrorText] = useState("");
+  const [successText, setSuccessText] = useState("");
+
+  // Redirect after success
+  useEffect(() => {
+    if (registered) {
+      setTimeout(() => {
+        router.replace("/login");
+      }, 1500);
+    }
+  }, [registered]);
+
+  // Email validation
+  const validateEmail = (val) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+
+  // REGISTER
   const handleRegister = async () => {
-    // Empty field checks (individual, specific messages)
-    if (!name.trim() && !email.trim() && !password) {
-      Alert.alert(
-        "Missing Fields",
-        "Please fill in all fields to create your account.",
-      );
+    // Clear old messages
+    setErrorText("");
+    setSuccessText("");
+
+    // Validation
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setErrorText("Please fill all the fields.");
       return;
     }
-    if (!name.trim()) {
-      Alert.alert("Missing Name", "Please enter your full name.");
-      return;
-    }
+
     if (name.trim().length < 2) {
-      Alert.alert("Invalid Name", "Name must be at least 2 characters.");
+      setErrorText("Name must be at least 2 characters.");
       return;
     }
-    if (!email.trim()) {
-      Alert.alert("Missing Email", "Please enter your email address.");
-      return;
-    }
+
     if (!validateEmail(email)) {
-      Alert.alert(
-        "Invalid Email",
-        "Please enter a valid email address (e.g. user@example.com).",
-      );
+      setErrorText("Please enter a valid email address.");
       return;
     }
-    if (!password) {
-      Alert.alert("Missing Password", "Please enter a password.");
-      return;
-    }
+
     if (password.length < 6) {
-      Alert.alert(
-        "Weak Password",
-        "Password must be at least 6 characters long.",
+      setErrorText(
+        "Password must be at least 6 characters long."
       );
       return;
     }
 
     setLoading(true);
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password,
-      );
+      // Firebase auth
+      const userCredential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
 
       const user = userCredential.user;
 
-      // Save user data to Firestore
+      // Firestore user data
       await setDoc(doc(db, "users", user.uid), {
         name: name.trim(),
         email: email.trim(),
         uid: user.uid,
-
-        // User stats
         score: 0,
         quizzesAttempted: 0,
         correctAnswers: 0,
+        bestScore: 0,
         createdAt: Date.now(),
       });
 
-      // Clear all fields
+      // Clear fields
       setName("");
       setEmail("");
       setPassword("");
 
-      // Show success then navigate
-      Alert.alert(
-        "Account Created",
-        `Welcome, ${name.trim()}! Your account has been created successfully.`,
-        [
-          {
-            text: "Get Started",
-            onPress: () => router.replace("/login"),
-          },
-        ],
+      // Success message
+      setSuccessText(
+        "Account created successfully! Redirecting to login..."
       );
-    } catch (error) {
-      console.log("REGISTER ERROR:", error.code, error.message);
 
-      let msg = "Something went wrong. Please try again.";
+      setRegistered(true);
+
+    } catch (error) {
+      console.log("REGISTER ERROR:", error.code);
+
+      let msg =
+        "Something went wrong. Please try again.";
+
       if (error.code === "auth/email-already-in-use") {
         msg =
-          "This email is already registered. Please log in or use a different email.";
+          "This email is already registered.";
       } else if (error.code === "auth/invalid-email") {
-        msg = "Invalid email address format.";
+        msg =
+          "Invalid email address format.";
       } else if (error.code === "auth/weak-password") {
-        msg = "Password is too weak. Please use at least 6 characters.";
-      } else if (error.code === "auth/network-request-failed") {
-        msg = "Network error. Please check your internet connection.";
-      } else if (error.code === "auth/operation-not-allowed") {
-        msg = "Email/password registration is not enabled. Contact support.";
+        msg =
+          "Password is too weak.";
+      } else if (
+        error.code === "auth/network-request-failed"
+      ) {
+        msg =
+          "Check your internet connection.";
       }
 
-      Alert.alert("Registration Failed", msg);
+      setErrorText(msg);
+
     } finally {
       setLoading(false);
     }
@@ -139,7 +149,11 @@ export default function Register() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : undefined
+      }
     >
       <StatusBar barStyle="dark-content" />
 
@@ -147,26 +161,81 @@ export default function Register() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.card, isTablet && styles.cardTablet]}>
-          {/* Header */}
+        <View
+          style={[
+            styles.card,
+            isTablet && styles.cardTablet,
+          ]}
+        >
+
+          {/* HEADER */}
           <View style={styles.header}>
             <View style={styles.badge}>
-              <Ionicons name="person-add-outline" size={16} color="#4F46E5" />
-              <Text style={styles.badgeText}>Join Quiz AI</Text>
+              <Ionicons
+                name="person-add-outline"
+                size={16}
+                color="#4F46E5"
+              />
+
+              <Text style={styles.badgeText}>
+                Join Quiz AI
+              </Text>
             </View>
-            <Text style={styles.title}>Create Account</Text>
+
+            <Text style={styles.title}>
+              Create Account
+            </Text>
+
             <Text style={styles.subtitle}>
               Start your learning journey today
             </Text>
           </View>
 
-          {/* Name */}
+          {/* ERROR MESSAGE */}
+          {!!errorText && (
+            <View style={styles.errorBox}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color="#EF4444"
+              />
+
+              <Text style={styles.errorText}>
+                {errorText}
+              </Text>
+            </View>
+          )}
+
+          {/* SUCCESS MESSAGE */}
+          {!!successText && (
+            <View style={styles.successBox}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color="#10B981"
+              />
+
+              <Text style={styles.successText}>
+                {successText}
+              </Text>
+            </View>
+          )}
+
+          {/* NAME */}
           <View style={styles.inputGroup}>
-            <Ionicons name="person-outline" size={20} style={styles.icon} />
+            <Ionicons
+              name="person-outline"
+              size={20}
+              style={styles.icon}
+            />
+
             <TextInput
               placeholder="Full name"
               value={name}
-              onChangeText={setName}
+              onChangeText={(text) => {
+                setName(text);
+                setErrorText("");
+              }}
               style={styles.input}
               placeholderTextColor="#9CA3AF"
               autoCapitalize="words"
@@ -174,13 +243,21 @@ export default function Register() {
             />
           </View>
 
-          {/* Email */}
+          {/* EMAIL */}
           <View style={styles.inputGroup}>
-            <Ionicons name="mail-outline" size={20} style={styles.icon} />
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              style={styles.icon}
+            />
+
             <TextInput
               placeholder="Email address"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                setErrorText("");
+              }}
               style={styles.input}
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
@@ -190,71 +267,102 @@ export default function Register() {
             />
           </View>
 
-          {/* Password */}
+          {/* PASSWORD */}
           <View style={styles.inputGroup}>
             <Ionicons
               name="lock-closed-outline"
               size={20}
               style={styles.icon}
             />
+
             <TextInput
               placeholder="Password (min. 6 characters)"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                setErrorText("");
+              }}
               secureTextEntry={!showPass}
               style={styles.input}
               placeholderTextColor="#9CA3AF"
               editable={!loading}
             />
+
             <TouchableOpacity
-              onPress={() => setShowPass(!showPass)}
+              onPress={() =>
+                setShowPass(!showPass)
+              }
               style={styles.eye}
             >
               <Ionicons
-                name={showPass ? "eye-outline" : "eye-off-outline"}
+                name={
+                  showPass
+                    ? "eye-outline"
+                    : "eye-off-outline"
+                }
                 size={20}
                 color="#9CA3AF"
               />
             </TouchableOpacity>
           </View>
 
-          {/* Register Button */}
+          {/* BUTTON */}
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              loading &&
+                styles.buttonDisabled,
+            ]}
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.8}
           >
             {loading ? (
               <>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.buttonText}>Creating Account...</Text>
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                />
+
+                <Text style={styles.buttonText}>
+                  Creating Account...
+                </Text>
               </>
             ) : (
               <>
-                <Text style={styles.buttonText}>Create Account</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                <Text style={styles.buttonText}>
+                  Create Account
+                </Text>
+
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color="#fff"
+                />
               </>
             )}
           </TouchableOpacity>
 
-          {/* Divider */}
+          {/* DIVIDER */}
           <View style={styles.divider}>
             <View style={styles.line} />
             <Text style={styles.or}>OR</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Login */}
+          {/* LOGIN */}
           <TouchableOpacity
             style={styles.secondary}
-            onPress={() => router.push("/login")}
+            onPress={() =>
+              router.push("/login")
+            }
             disabled={loading}
           >
             <Text style={styles.secondaryText}>
               Already have an account? Sign in
             </Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -262,14 +370,30 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F7FB" },
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F7FB",
+  },
 
-  scroll: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
 
-  card: { width: "100%", maxWidth: 420, alignSelf: "center" },
-  cardTablet: { maxWidth: 500 },
+  card: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+  },
 
-  header: { marginBottom: 25 },
+  cardTablet: {
+    maxWidth: 500,
+  },
+
+  header: {
+    marginBottom: 25,
+  },
 
   badge: {
     flexDirection: "row",
@@ -282,10 +406,63 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 12,
   },
-  badgeText: { color: "#4F46E5", fontWeight: "600" },
 
-  title: { fontSize: 30, fontWeight: "700", color: "#111827" },
-  subtitle: { fontSize: 14, color: "#6B7280", marginTop: 5 },
+  badgeText: {
+    color: "#4F46E5",
+    fontWeight: "600",
+  },
+
+  title: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  subtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 5,
+  },
+
+  // ERROR
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+
+  errorText: {
+    color: "#DC2626",
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  // SUCCESS
+  successBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+
+  successText: {
+    color: "#059669",
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "500",
+  },
 
   inputGroup: {
     flexDirection: "row",
@@ -298,11 +475,20 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
 
-  icon: { marginRight: 8, color: "#9CA3AF" },
+  icon: {
+    marginRight: 8,
+    color: "#9CA3AF",
+  },
 
-  input: { flex: 1, height: 50, color: "#111827" },
+  input: {
+    flex: 1,
+    height: 50,
+    color: "#111827",
+  },
 
-  eye: { padding: 6 },
+  eye: {
+    padding: 6,
+  },
 
   button: {
     flexDirection: "row",
@@ -314,16 +500,33 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
   },
-  buttonDisabled: { backgroundColor: "#818CF8" },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+
+  buttonDisabled: {
+    backgroundColor: "#818CF8",
+  },
+
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+  },
 
   divider: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 20,
   },
-  line: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
-  or: { marginHorizontal: 10, color: "#9CA3AF" },
+
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+
+  or: {
+    marginHorizontal: 10,
+    color: "#9CA3AF",
+  },
 
   secondary: {
     padding: 14,
@@ -333,5 +536,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-  secondaryText: { color: "#374151", fontWeight: "500" },
+
+  secondaryText: {
+    color: "#374151",
+    fontWeight: "500",
+  },
 });
